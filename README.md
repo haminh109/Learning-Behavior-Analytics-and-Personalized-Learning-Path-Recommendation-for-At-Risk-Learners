@@ -49,8 +49,11 @@ To clone the repository with the full dataset, please install Git LFS first.
 
 ### Option 1: Fresh clone
 git lfs install
+
 git clone https://github.com/haminh109/Learning-Behavior-Analytics-and-Personalized-Learning-Path-Recommendation-for-At-Risk-Learners.git
+
 cd Learning-Behavior-Analytics-and-Personalized-Learning-Path-Recommendation-for-At-Risk-Learners
+
 git lfs pull
 
 ### Option 2: If you already cloned the repo
