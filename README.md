@@ -41,6 +41,25 @@ Main tables used:
 - `vle.csv`
 - `studentVle.csv`
 
+## How to Clone This Repository with Full Data
+
+This repository uses **Git LFS** for the large file `data/raw/studentVle.csv`.
+
+To clone the repository with the full dataset, please install Git LFS first.
+
+### Option 1: Fresh clone
+git lfs install
+git clone https://github.com/haminh109/Learning-Behavior-Analytics-and-Personalized-Learning-Path-Recommendation-for-At-Risk-Learners.git
+cd Learning-Behavior-Analytics-and-Personalized-Learning-Path-Recommendation-for-At-Risk-Learners
+git lfs pull
+
+### Option 2: If you already cloned the repo
+git lfs install
+git lfs pull
+
+**If Git LFS is not installed, large files such as studentVle.csv may appear only as pointer text files instead of the real dataset.**
+
+
 ## Project Workflow
 1. Problem definition and research design
 2. Data understanding and table mapping
