@@ -1,38 +1,38 @@
-# Power BI Dashboard Storyboard
+# Power BI Research Dashboard Storyboard
 
-This file is the dashboard build guide for the final project.
-It maps each page to:
+This storyboard rebuilds the dashboard around the upgraded project direction:
 
-- business question,
-- core visuals,
-- KPI cards,
-- source tables,
-- interaction logic,
-- short speaking notes.
+`behavior evidence -> segmentation context -> multi-horizon early warning -> calibration -> watchlist`
 
-Use the exported CSV files from notebooks `05` and `06` together with the processed tables from notebooks `02` to `04`.
+The dashboard is no longer framed as a product demo. It is a **research dashboard** that supports evidence, explanation, and intervention prioritization.
 
-## 1. Recommended Data Imports
+## 1. Data Imports
 
-Import these files into Power BI:
+Import these tables into Power BI:
 
-- `student_info_clean.csv`
-- `student_course_registration.csv`
-- `assessment_performance.csv`
-- `student_vle_summary.csv`
 - `features_final.csv`
+- `features_horizon_metadata.csv`
 - `segment_assignments.csv`
 - `cluster_profiles.csv`
 - `cluster_success_activity_profile.csv`
 - `personalized_learning_paths.csv`
-- `at_risk_test_predictions.csv`
-- `segment_model_performance.csv`
 - `recommendation_dashboard_summary.csv`
+- `model_horizon_comparison.csv`
+- `selected_operating_points.csv`
+- `champion_test_metrics.csv`
+- `champion_test_predictions.csv`
+- `calibration_summary.csv`
+- `risk_band_summary.csv`
+- `risk_band_test_predictions.csv`
+- `ablation_results.csv`
+- `ablation_gain_summary.csv`
+- `model_feature_importance.csv`
+- `segment_model_performance.csv`
 - `outcome_risk_summary.csv`
 
-## 2. Suggested Relationship Logic
+## 2. Relationship Logic
 
-Use enrollment grain as the main key:
+Use the enrollment key everywhere:
 
 - `id_student`
 - `code_module`
@@ -42,295 +42,294 @@ Primary fact-like tables:
 
 - `features_final`
 - `personalized_learning_paths`
-- `at_risk_test_predictions`
+- `champion_test_predictions`
+- `risk_band_test_predictions`
 
 Profile / summary tables:
 
-- `segment_assignments`
+- `features_horizon_metadata`
 - `cluster_profiles`
 - `cluster_success_activity_profile`
+- `model_horizon_comparison`
+- `selected_operating_points`
+- `champion_test_metrics`
+- `calibration_summary`
+- `risk_band_summary`
+- `ablation_results`
+- `ablation_gain_summary`
+- `model_feature_importance`
 - `segment_model_performance`
 - `outcome_risk_summary`
 
-## 3. Suggested Core Measures
+## 3. Core Measures
 
-Use DAX or equivalent measures like these:
+Use DAX measures like these:
 
 ```text
 Total Enrollments = COUNTROWS(features_final)
 Unique Learners = DISTINCTCOUNT(features_final[id_student])
 At-Risk Learners = CALCULATE(COUNTROWS(features_final), features_final[at_risk] = 1)
 At-Risk Rate = DIVIDE([At-Risk Learners], [Total Enrollments])
-Avg Score = AVERAGE(features_final[avg_score])
-Avg Completion Ratio = AVERAGE(features_final[completion_ratio])
-Avg Recommendation Score = AVERAGE(personalized_learning_paths[recommendation_score])
-Predicted Positive Rate = AVERAGE(at_risk_test_predictions[y_pred])
-Avg Risk Probability = AVERAGE(at_risk_test_predictions[risk_probability])
+
+Champion Precision = MAX(champion_test_metrics[precision])
+Champion Recall = MAX(champion_test_metrics[recall])
+Champion PR AUC = MAX(champion_test_metrics[pr_auc])
+Champion ROC AUC = MAX(champion_test_metrics[roc_auc])
+
+Avg Risk Probability = AVERAGE(champion_test_predictions[risk_probability])
+Critical Risk Learners = CALCULATE(COUNTROWS(risk_band_test_predictions), risk_band_test_predictions[risk_band] = "Critical")
+Earliest Useful Horizon = MINX(FILTER(selected_operating_points, selected_operating_points[is_earliest_useful_horizon] = TRUE()), selected_operating_points[horizon_day])
 ```
 
 ## 4. Page 1 - Executive Overview
 
 ### Business purpose
 
-Give a top-level summary of learner risk, engagement, segmentation, and recommendation status.
+Show the project scale, risk burden, final champion result, and overall intervention context.
 
 ### KPI cards
 
-- Total Enrollments: `32,593`
-- Unique Learners: `28,785`
-- At-Risk Rate: `52.8%`
-- Avg Recommendation Score
-- Number of Segments: `4`
-- Champion Model Recall: `91.55%`
+- Total enrollments: `32,593`
+- Unique learners: `28,785`
+- At-risk rate: `52.8%`
+- Earliest useful horizon: `Day 7`
+- Champion pair: `XGBoost @ Day 30`
+- Champion recall: `93.67%`
+- Champion PR-AUC: `0.8766`
 
 ### Suggested visuals
 
 1. KPI cards row
-2. Final result distribution donut or stacked bar
-3. At-risk rate by module bar chart
-4. Cluster distribution bar chart
-5. Recommended path distribution bar chart
+2. Final result distribution bar chart
+3. Segment distribution bar chart
+4. Top recommendation paths bar chart
+5. Risk band distribution chart
 
 ### Source tables
 
 - `features_final`
 - `segment_assignments`
 - `personalized_learning_paths`
-- `cluster_profiles`
+- `risk_band_summary`
 
-### Key message to say
+### Key message
 
-> The project solves a real risk problem at scale. More than half of enrollments are at risk, and learner behavior can be translated into both segment insight and intervention paths.
+> The project addresses a large risk problem, keeps the segmentation layer for interpretation, and upgrades the predictive branch into a calibrated multi-horizon early-warning study.
 
-## 5. Page 2 - Learning Behavior Analytics
+## 5. Page 2 - Behavior & Outcome Analytics
 
 ### Business purpose
 
-Show how engagement and assessment behavior differ across learner outcomes.
+Show why early warning is justified by the raw behavior patterns.
 
 ### KPI cards
 
-- Median total clicks
 - Median early engagement
 - Avg score
 - Avg completion ratio
+- Avg days since last activity
 
 ### Suggested visuals
 
-1. Boxplot or violin chart of `total_clicks` by `final_result`
+1. Boxplot of `total_clicks` by `final_result`
 2. Boxplot of `avg_score` by `final_result`
 3. Boxplot of `completion_ratio` by `final_result`
-4. Bar chart of median early engagement by outcome
-5. Heatmap of modules x at-risk rate
-
-### Important story points
-
-- `Withdrawn` learners show the weakest early engagement.
-- Assessment completion and score quality separate good and weak outcomes sharply.
-- Module context matters; `CCC` is much riskier than `AAA`.
+4. Median early engagement by outcome
+5. Module x at-risk rate heatmap
 
 ### Source tables
 
 - `features_final`
 
-## 6. Page 3 - Personalized Recommendation for General Learners
+### Key message
+
+> Weak outcomes are visible early and are shaped by both engagement and assessment behavior.
+
+## 6. Page 3 - Segmentation & Recommendation Context
 
 ### Business purpose
 
-Explain learner segmentation and the recommendation engine for general learners.
+Keep the day-30 learner analytics story visible and connect it to recommendation logic.
 
 ### KPI cards
 
-- Number of learners in each segment
+- Number of segments: `4`
+- Largest segment: `Steady Progressors`
+- Highest-risk segment: `Inactive Drop-offs`
 - Avg recommendation score
-- Top recommended path
 
 ### Suggested visuals
 
 1. Cluster size bar chart
-2. Cluster profile matrix or heatmap
-3. Recommended path distribution
-4. Activity-type mix by cluster
-5. Table of sample personalized recommendations:
+2. Cluster risk-rate bar chart
+3. Cluster profile heatmap
+4. Recommended path distribution
+5. Sample recommendation table:
    - `cluster_label`
    - `recommended_path`
    - `action_1`
-   - `activity_recommendation_1`
+   - `action_2`
    - `recommendation_score`
 
 ### Source tables
 
+- `segment_assignments`
 - `cluster_profiles`
 - `cluster_success_activity_profile`
 - `personalized_learning_paths`
-- `segment_assignments`
 
-### Key message to say
+### Key message
 
-> Recommendation is driven by behavior gaps relative to successful peers in the same cluster, not by one-size-fits-all advice.
+> Segmentation remains the interpretation layer that turns model output into differentiated intervention ideas.
 
-## 7. Page 4 - At-Risk Learner Identification
+## 7. Page 4 - Multi-Horizon Early Warning
 
 ### Business purpose
 
-Show model performance and how the early-warning model flags risk.
+Compare how predictive quality changes from day 7 to day 30.
 
 ### KPI cards
 
-- Champion model: `Random Forest`
-- Threshold: `0.30`
-- Recall: `91.55%`
-- Precision: `65.32%`
-- ROC-AUC: `0.8427`
-- PR-AUC: `0.8720`
+- Earliest useful horizon: `Day 7`
+- Best day-7 recall: `93.93%`
+- Best day-30 PR-AUC: `0.8639` on validation
+- Final champion threshold: `0.25`
 
 ### Suggested visuals
 
-1. Model comparison table:
+1. Matrix:
+   - horizon
    - model
-   - threshold
-   - precision
-   - recall
-   - F2
-   - ROC-AUC
-   - PR-AUC
-2. Confusion matrix card block
-3. ROC curve image or recreated curve
-4. Precision-recall curve
-5. Histogram of `risk_probability`
+   - validation precision
+   - validation recall
+   - validation F2
+   - validation PR-AUC
+2. Line chart of best validation PR-AUC by horizon
+3. Line chart of best validation recall by horizon
+4. Threshold curve for the champion pair
+5. Card or annotation that explains:
+   - day 7 = earliest useful horizon
+   - day 30 = strongest final ranking horizon
 
 ### Source tables
 
-- `model_test_comparison`
-- `at_risk_test_predictions`
+- `model_horizon_comparison`
+- `selected_operating_points`
+- `threshold_search_by_horizon`
+- `champion_test_metrics`
 
-### Key message to say
+### Key message
 
-> The final operating point intentionally prioritizes recall because missing an at-risk learner is more costly than reviewing an extra false alarm.
+> Earlier horizons lose information but gain intervention time. Later horizons rank learners better, but the day-7 checkpoint is already operationally useful.
 
-## 8. Page 5 - At-Risk Behavior Deep Dive
+## 8. Page 5 - Calibration & Model Diagnostics
 
 ### Business purpose
 
-Explain where the model works best and what behavioral signals are most important.
+Show whether the final probabilities are trustworthy and which features matter most.
 
 ### KPI cards
 
-- Top risk driver: `avg_score`
-- Strongest operational group: `Inactive Drop-offs`
-- Highest predicted-positive group: `Inactive Drop-offs`
+- Champion PR-AUC: `0.8766`
+- Champion ROC-AUC: `0.8467`
+- Champion Brier score: `0.1580`
+- Critical-band realized at-risk rate: `92.5%`
 
 ### Suggested visuals
 
-1. Feature importance bar chart from `model_feature_importance`
-2. Segment-level model performance table
-3. Risk probability by final result boxplot
-4. Predicted positive rate by cluster
-5. Actual at-risk rate by cluster
+1. Calibration line chart across horizons for the champion model family
+2. Risk band summary chart
+3. Ablation comparison bar chart at day 14
+4. Ablation comparison bar chart at day 30
+5. Feature importance bar chart
 
 ### Source tables
 
+- `calibration_summary`
+- `risk_band_summary`
+- `ablation_results`
+- `ablation_gain_summary`
 - `model_feature_importance`
-- `segment_model_performance`
-- `outcome_risk_summary`
-- `at_risk_test_predictions`
 
-### What to explain
+### Key message
 
-- The model is strongest in clearly vulnerable segments.
-- `Inactive Drop-offs` and `Sporadic Explorers` should be treated as high-priority intervention groups.
-- Risk is shaped by both engagement and academic performance, not by one metric alone.
+> The probabilities are ordered well enough to support risk tiers, and the strongest lift comes from combining engagement and assessment features rather than relying on demographics alone.
 
-## 9. Page 6 - Personalized Path Recommendation for At-Risk Learners
+## 9. Page 6 - At-Risk Learner Watchlist
 
 ### Business purpose
 
-Connect prediction to action: once a learner is flagged at risk, what should be recommended next?
-
-### Filters
-
-- `y_pred = 1`
-- or `risk_probability >= chosen managerial cutoff`
+Turn the research output into a prioritized learner table for review.
 
 ### KPI cards
 
-- Number of flagged learners
-- Avg risk probability among flagged learners
-- Top recommended path for flagged learners
-- Avg recommendation score for flagged learners
+- Number of predicted positives
+- Number of critical-risk learners
+- Avg risk probability among predicted positives
+- Most common recommendation path among flagged learners
 
 ### Suggested visuals
 
-1. Bar chart of recommended paths among predicted at-risk learners
-2. Cluster x recommended path matrix
-3. Table of flagged learners with:
+1. Watchlist table with:
    - `id_student`
    - `code_module`
    - `cluster_label`
+   - `risk_band`
    - `risk_probability`
    - `recommended_path`
    - `action_1`
    - `action_2`
-   - `activity_recommendation_1`
-4. Segment-wise intervention table:
-   - cluster
-   - actual at-risk rate
-   - recall
-   - most common recommended path
+2. Bar chart of flagged learners by risk band
+3. Cluster x risk band matrix
+4. Recommended path distribution for flagged learners
 
 ### Source tables
 
-- `at_risk_test_predictions`
-- `personalized_learning_paths`
+- `champion_test_predictions`
+- `risk_band_test_predictions`
 - `segment_model_performance`
 
-### Key message to say
+### Key message
 
-> The project does not stop at prediction. It links risk detection to a concrete intervention path, which is the practical value of the full pipeline.
+> The dashboard does not stop at prediction. It organizes the final output into a triage list that combines risk level, learner segment, and recommended path.
 
 ## 10. Recommended Slicers
 
-Use these slicers consistently across pages:
+Use these slicers consistently:
 
 - `code_module`
 - `code_presentation`
 - `cluster_label`
 - `rule_segment`
 - `final_result`
+- `risk_band`
 - `recommended_path`
-
-Optional:
-
-- risk flag (`y_pred`)
-- high-risk band based on `risk_probability`
 
 ## 11. Design Notes
 
-Keep the dashboard style quiet and analytical:
+Keep the dashboard analytical:
 
-- avoid decorative visuals,
-- favor readable KPI cards and bar charts,
-- keep one primary message per page,
-- use consistent colors for outcomes and clusters,
-- keep filters in a fixed location.
+- restrained layout
+- no decorative hero sections
+- fixed KPI row on top
+- consistent red family for risk
+- teal or blue-green for recommendation visuals
+- one key message per page
 
-Suggested color logic:
+Suggested outcome colors:
 
 - `Distinction`: blue
 - `Pass`: green
 - `Fail`: orange
 - `Withdrawn`: red
-- risk KPI / predicted positive: red family
-- recommendation / action visuals: teal or blue-green family
 
-## 12. Final Presentation Flow
+## 12. Presentation Flow
 
-If you need a clean spoken sequence while presenting the dashboard:
+Use this order while presenting:
 
-1. Start with scale and risk in the Executive Overview.
-2. Show that weak outcomes are already visible in early behavior.
-3. Move to segmentation and explain that learners are not homogeneous.
-4. Show the at-risk model and justify the threshold with recall.
-5. End with intervention: recommendation path by flagged learner group.
-
-That sequence is usually the easiest to defend because it moves from problem -> evidence -> segmentation -> prediction -> action.
+1. Executive scale and why the problem matters
+2. Behavior evidence
+3. Segmentation context
+4. Multi-horizon comparison
+5. Calibration and ablation
+6. Watchlist and intervention relevance

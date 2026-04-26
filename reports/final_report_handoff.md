@@ -1,32 +1,31 @@
 # Final Report Handoff
 
-This document turns notebooks `01` to `06` into a report-ready storyline.
-It is written to help with:
+This file turns notebooks `01` to `06` into a report-ready narrative for the upgraded version of the project.
 
-- final report drafting,
-- presentation speaking flow,
-- defense Q&A on methods and model choice.
+The new storyline is:
+
+`behavior analytics -> segmentation -> recommendation -> multi-horizon early warning -> ablation -> calibration -> intervention watchlist`
 
 ## 1. Executive Summary
 
-Use this as the opening paragraph of the report:
+Use this as the opening paragraph:
 
-> This project analyzes learning behavior in the OULAD dataset and develops a data-driven framework for learner segmentation, personalized learning path recommendation, and early identification of at-risk learners. Across 32,593 enrollments and 28,785 unique learners, the analysis shows that early engagement, assessment completion, persistence, and study discipline are much stronger outcome signals than demographic variables alone. The project then translates these signals into four learner segments, personalized recommendation paths, and an early-warning at-risk model designed for high recall so that weak learners can be detected early enough for intervention.
+> This project analyzes learner behavior in the OULAD dataset and develops a research-focused framework for segmentation, personalized recommendation, and early identification of at-risk learners. The final pipeline uses 32,593 enrollment records and compares early-warning models at day 7, 14, 21, and 30. Results show that useful recall is already achievable at day 7, but predictive ranking quality improves materially as more course history becomes available. The final champion pair is an XGBoost model at day 30 with a recall-oriented threshold of 0.25, while calibration and risk-band analysis show that the predicted probabilities are operationally meaningful for intervention prioritization.
 
-## 2. Project Scope and Objective
+## 2. Project Scope
 
-Use these points in the introduction:
+State these points clearly:
 
-- Dataset: OULAD with seven main tables.
-- Observation unit: learner-module-presentation enrollment.
-- Part I objective: understand learning behavior, segment learners, and recommend learning paths.
-- Part II objective: identify at-risk learners early and provide intervention-oriented insight.
+- Dataset: OULAD
+- Observation unit: `id_student + code_module + code_presentation`
+- Part I objective: explain learner behavior, segment learners, and generate personalized learning paths
+- Part II objective: identify at-risk learners early enough for intervention and quantify how model quality changes over time
 
-## 3. Dataset and Preparation
+## 3. Dataset Facts
 
-Key facts to state:
+Use these numbers:
 
-- Total enrollments used in the final pipeline: `32,593`
+- Final enrollments used: `32,593`
 - Unique learners: `28,785`
 - Final result distribution:
   - `Pass`: `12,361`
@@ -36,305 +35,332 @@ Key facts to state:
 - At-risk definition: `Fail` or `Withdrawn`
 - Overall at-risk rate: `52.8%`
 
-Suggested wording:
+Suggested sentence:
 
-> Data preparation was carried out at the enrollment level to avoid unsafe student-only joins. Missing and inconsistent fields were audited, cleaned tables were exported, and all downstream features were rebuilt from a consistent learner-module-presentation grain.
+> The problem is operationally large rather than marginal. More than half of all enrollments end in fail or withdrawal outcomes, which makes early warning and differentiated support a meaningful management problem.
 
 ## 4. EDA Storyline
 
-This should be the report flow for notebook `03_eda.ipynb`.
+### 4.1 Risk is uneven across modules
 
-### 4.1 Overall risk context
+- Highest-risk module: `CCC` with about `62.2%` at-risk rate
+- Lowest-risk module: `AAA` with about `29.0%` at-risk rate
 
-- The at-risk population is large: `52.8%` of enrollments.
-- Risk is not evenly distributed across courses.
-- Highest-risk module: `CCC` with `62.2%` at-risk rate.
-- Lowest-risk module: `AAA` with `29.0%` at-risk rate.
+Suggested wording:
 
-Suggested sentence:
+> Risk is not evenly distributed across the curriculum. Some modules carry much heavier withdrawal and failure burdens, so a single institution-wide support policy is unlikely to be efficient.
 
-> The risk problem is operationally meaningful, not marginal. More than half of enrollments fall into fail or withdrawal outcomes, and the risk burden varies substantially across modules.
+### 4.2 Early engagement matters immediately
 
-### 4.2 Early engagement matters
-
-Median early clicks in the first 14 days:
+Median clicks in the first 14 days:
 
 - `Distinction`: `156`
 - `Pass`: `104`
 - `Fail`: `40`
 - `Withdrawn`: `12`
 
-Suggested sentence:
+Suggested wording:
 
-> The early-window engagement gap appears immediately. Learners who eventually withdraw show extremely weak participation even in the first two weeks, while successful learners build momentum much earlier.
+> Weak outcomes are visible very early. Learners who eventually withdraw are already far behind successful learners in the first two weeks, which justifies an early-warning framing rather than a late-course diagnostic framing.
 
-### 4.3 Assessment behavior matters
-
-Median completion ratio:
-
-- `Distinction`: `0.5`
-- `Pass`: `0.5`
-- `Fail`: `0.5`
-- `Withdrawn`: `0.0`
-
-Median average score:
-
-- `Distinction`: `86`
-- `Pass`: `75`
-- `Fail`: `55`
-- `Withdrawn`: `0`
-
-Suggested sentence:
-
-> Assessment completion and score quality sharply separate successful learners from withdrawn learners. This confirms that academic discipline and not only browsing intensity should be central in downstream modeling and recommendation design.
-
-## 5. Feature Engineering Summary
-
-This is the logic to describe notebook `04_feature_engineering.ipynb`.
-
-### 5.1 Day-30 feature design
-
-State clearly:
-
-- All predictive features were restricted to information available by day 30.
-- This was done to reduce future-information leakage.
-- Features were grouped into:
-  - engagement,
-  - timing,
-  - assessment,
-  - persistence,
-  - composite risk and discipline features.
-
-### 5.2 Important engineered variables
-
-Name these explicitly:
-
-- `total_clicks_log`
-- `active_days_log`
-- `early_engagement_ratio`
-- `days_since_last`
-- `avg_score`
-- `avg_submission_delay`
-- `completion_ratio`
-- `assessment_discipline`
-- `persistence_score`
-- `learning_risk_index`
-- `has_submission_by_day30`
-
-Suggested sentence:
-
-> The feature store was designed to support both unsupervised segmentation and supervised early-warning prediction while preserving a strict day-30 observation window.
-
-## 6. Segmentation and Recommendation Story
-
-Use this to explain notebook `05_segmentation_recommendation.ipynb`.
-
-### 6.1 Why both rule-based and K-Means segmentation were used
+### 4.3 Assessment behavior matters with engagement
 
 Suggested wording:
 
-> A rule-based segmentation was built first to preserve business interpretability, then K-Means clustering was used to discover cleaner multivariate learner profiles from the standardized behavioral space.
+> Browsing alone is not enough. Assessment completion, submission discipline, and score quality all contribute strongly to outcome separation, which is why the downstream feature store keeps both engagement and assessment signals.
 
-### 6.2 Final segments
+## 5. Feature Engineering Story
 
-Report these four clusters:
+This is the core message for notebook `04_feature_engineering.ipynb`.
+
+### 5.1 The project now uses four predictive horizons
+
+State this explicitly:
+
+- `day 7`
+- `day 14`
+- `day 21`
+- `day 30`
+
+All four prediction tables:
+
+- have `32,593` rows,
+- have `40` columns,
+- have `0` missing cells,
+- have `0` duplicate enrollment keys.
+
+### 5.2 Leakage control
+
+Use this sentence:
+
+> Every predictive table is built from information available only up to its own horizon. Day-7 features use only day-7-safe behavior and submissions, day-14 features use only day-14-safe information, and so on. This keeps the horizon comparison methodologically defensible.
+
+### 5.3 Coverage trade-off
+
+Use these coverage facts:
+
+| Horizon | Activity Coverage | Submission Coverage | Score Coverage |
+|---|---:|---:|---:|
+| Day 7 | `74.0%` | `2.7%` | `2.7%` |
+| Day 14 | `81.5%` | `10.3%` | `10.3%` |
+| Day 21 | `84.7%` | `46.7%` | `46.7%` |
+| Day 30 | `85.8%` | `63.8%` | `63.7%` |
+
+Interpretation:
+
+> Earlier horizons give more time for intervention, but they observe much less assessment evidence. This is the central trade-off that notebook 06 evaluates formally.
+
+## 6. Segmentation and Recommendation Story
+
+Notebook `05_segmentation_recommendation.ipynb` remains the project's interpretability layer.
+
+### 6.1 Final learner segments
+
+Use these four clusters:
 
 1. `Inactive Drop-offs`
 2. `Sporadic Explorers`
 3. `Steady Progressors`
 4. `Focused Achievers`
 
-Cluster summary:
+### 6.2 Cluster summary
 
-| Cluster | Enrollments | Share | At-risk rate | Median clicks | Median completion | Median avg score |
-|---|---:|---:|---:|---:|---:|---:|
-| Inactive Drop-offs | 5,018 | 15.4% | 93.08% | 0 | 0.0 | 0 |
-| Sporadic Explorers | 8,476 | 26.01% | 60.82% | 79 | 0.0 | 0 |
-| Steady Progressors | 17,047 | 52.30% | 39.43% | 241 | 0.5 | 78 |
-| Focused Achievers | 2,052 | 6.30% | 32.16% | 541 | 1.0 | 80 |
-
-Interpretation:
-
-- `Inactive Drop-offs` are the clearest intervention group.
-- `Sporadic Explorers` engage a little, but do not convert activity into completion.
-- `Steady Progressors` are the operational middle and need guidance, not rescue.
-- `Focused Achievers` can be treated as a benchmark group and recommendation prototype source.
+| Cluster | Enrollments | Share | At-risk rate |
+|---|---:|---:|---:|
+| Steady Progressors | `17,047` | `52.3%` | `39.43%` |
+| Sporadic Explorers | `8,476` | `26.0%` | `60.82%` |
+| Inactive Drop-offs | `5,018` | `15.4%` | `93.08%` |
+| Focused Achievers | `2,052` | `6.3%` | `32.16%` |
 
 ### 6.3 Recommendation layer
 
-Core logic:
-
-- compare each learner with successful peers in the same cluster,
-- derive the largest feature gap,
-- assign a learning path label,
-- recommend high-value activity types available in the learner's module.
-
-Top path distribution:
+Most common paths:
 
 - `Consistency Building Path`: `11,133`
 - `Early Start Path`: `7,108`
 - `Assessment Recovery Path`: `5,613`
 - `Mastery Improvement Path`: `5,145`
-- `Re-Engagement Path`: `1,681`
-- `Focused Study Path`: `1,095`
-- `Sustain & Deepen Path`: `569`
-- `Assessment Discipline Path`: `249`
-
-Suggested sentence:
-
-> The recommendation engine does not simply rank content. It translates the behavioral gap between a learner and successful peers into an actionable path, concrete next actions, and activity-type emphasis.
-
-## 7. At-Risk Modeling Story
-
-Use this for notebook `06_at_risk_modeling.ipynb`.
-
-### 7.1 Candidate models
-
-State that three models were compared:
-
-- Logistic Regression
-- Random Forest
-- XGBoost
-
-### 7.2 Why threshold tuning was necessary
 
 Suggested wording:
 
-> Because the project goal is early intervention, the model was not evaluated only at the default threshold of 0.50. Instead, the validation split was used to choose an operating threshold that preserves high recall while improving precision as much as possible.
+> The recommendation engine translates observed behavioral gaps into actionable learning paths rather than only ranking abstract content items.
 
-### 7.3 Model selection logic
+## 7. Multi-Horizon Modeling Story
 
-State this clearly:
+Notebook `06_at_risk_modeling.ipynb` is now the center of the research contribution.
 
-- Use validation data, not test data, to choose the final operating point.
-- Require recall to stay around or above `0.90`.
-- Among such thresholds, prefer higher precision.
+### 7.1 Candidate models
 
-This is the strongest defense point if asked why Random Forest was selected.
+State that the study compares:
 
-### 7.4 Validation operating points
+- `Logistic Regression`
+- `Random Forest`
+- `XGBoost`
 
-| Model | Threshold | Precision | Recall | F2 | ROC-AUC | PR-AUC |
-|---|---:|---:|---:|---:|---:|---:|
-| Random Forest | 0.30 | 0.6436 | 0.9024 | 0.8352 | 0.8217 | 0.8562 |
-| XGBoost | 0.25 | 0.6303 | 0.9227 | 0.8444 | 0.8293 | 0.8640 |
-| Logistic Regression | 0.25 | 0.6197 | 0.9137 | 0.8345 | 0.7956 | 0.8289 |
+across all four horizons.
 
-### 7.5 Final test performance
+### 7.2 Threshold selection rule
 
-Champion model used in the notebook: `Random Forest`
+Use this exactly:
+
+1. Use the validation split only
+2. Keep thresholds with `recall >= 0.90`
+3. Among those, choose the highest `precision`
+4. Break ties with `F2`, then `PR-AUC`
+
+This is an important defense point because it explains why the project does not use the default threshold of `0.50`.
+
+### 7.3 Earliest useful horizon
+
+Use this sentence:
+
+> A useful early-warning signal already appears at day 7. The best day-7 operating point is Logistic Regression with validation recall `0.9393`, precision `0.5771`, and PR-AUC `0.7592`. This makes day 7 a credible earliest intervention checkpoint even though later horizons rank learners more accurately.
+
+### 7.4 Horizon comparison summary
+
+Use the best model for each horizon:
+
+| Horizon | Best Pair | Validation Recall | Validation Precision | Validation PR-AUC |
+|---|---|---:|---:|---:|
+| Day 7 | Logistic Regression | `0.9393` | `0.5771` | `0.7592` |
+| Day 14 | XGBoost | `0.9372` | `0.5794` | `0.8012` |
+| Day 21 | XGBoost | `0.9311` | `0.6122` | `0.8432` |
+| Day 30 | XGBoost | `0.9253` | `0.6278` | `0.8639` |
+
+Interpretation:
+
+> The ranking quality improves steadily from day 7 to day 30, while recall remains high throughout. That confirms the expected research trade-off: later horizons are stronger, but earlier horizons remain operationally useful.
+
+### 7.5 Final champion pair
+
+Champion: `XGBoost @ day 30`, threshold `0.25`
+
+Held-out test metrics:
 
 | Metric | Value |
 |---|---:|
-| Threshold | `0.30` |
-| Accuracy | `0.6987` |
-| Precision | `0.6532` |
-| Recall | `0.9155` |
-| F1 | `0.7624` |
-| F2 | `0.8474` |
-| ROC-AUC | `0.8427` |
-| PR-AUC | `0.8720` |
+| Accuracy | `0.6777` |
+| Precision | `0.6313` |
+| Recall | `0.9367` |
+| F1 | `0.7542` |
+| F2 | `0.8540` |
+| ROC-AUC | `0.8467` |
+| PR-AUC | `0.8766` |
+| Brier score | `0.1580` |
 
 Suggested model-choice explanation:
 
-> Random Forest was retained as the final model because it provided the strongest precision among the validation-selected high-recall operating points. XGBoost remained a strong benchmark and slightly exceeded Random Forest on some held-out ranking metrics, but it was not selected post hoc from the test set in order to preserve methodological discipline.
+> The final champion was selected from validation performance, not from test hindsight. XGBoost at day 30 offered the strongest PR-AUC and F2 among the high-recall operating points, while earlier horizons remained part of the evidence base to show how predictive quality evolves over time.
 
-This sentence is important. It shows you did not overfit your decision to test performance.
+## 8. Ablation Story
 
-### 7.6 Main predictive signals
+This is one of the biggest upgrades in the project.
 
-Top importance signals to mention:
+### 8.1 Why ablation was added
+
+Use this sentence:
+
+> Ablation was introduced to test whether the model's value comes mainly from demographics, engagement, assessment behavior, or their combination.
+
+### 8.2 Main ablation findings
+
+At `day 14`:
+
+- Full feature set test PR-AUC: `0.8114`
+- Engagement + assessment: `0.7689`
+- Engagement only: `0.7583`
+- Demographics only: `0.6666`
+- Assessment only: `0.5561`
+
+At `day 30`:
+
+- Full feature set test PR-AUC: `0.8766`
+- Engagement + assessment: `0.8472`
+- Engagement only: `0.8033`
+- Assessment only: `0.7431`
+- Demographics only: `0.6666`
+
+Interpretation:
+
+> The full model clearly outperforms weaker feature subsets, and the biggest practical lift comes from combining engagement and assessment evidence. Demographics alone are not competitive, which is a strong result for both methodology and educational interpretation.
+
+## 9. Calibration and Risk Bands
+
+This section is new and should be highlighted in the report.
+
+### 9.1 Why calibration matters
+
+Use this wording:
+
+> Early-warning systems are used to prioritize intervention, which depends on probability quality rather than only on a binary label. For that reason, the project evaluates calibration and converts final probabilities into operational risk bands.
+
+### 9.2 Final risk bands
+
+| Risk Band | Learners | Actual At-Risk Rate | Avg Predicted Probability |
+|---|---:|---:|---:|
+| Low | `1,412` | `15.4%` | `0.159` |
+| Medium | `1,971` | `35.3%` | `0.366` |
+| High | `1,232` | `62.2%` | `0.622` |
+| Critical | `1,904` | `92.5%` | `0.922` |
+
+Interpretation:
+
+> The risk tiers are well ordered. As predicted risk increases, the realized at-risk rate increases sharply, which makes the output suitable for watchlists and intervention prioritization.
+
+## 10. Main Predictive Signals
+
+Top global importance signals in the champion model:
 
 1. `avg_score`
 2. `studied_credits`
 3. `days_since_last`
 4. `avg_submission_delay`
-5. `learning_risk_index`
-6. `completion_ratio`
-7. `assessment_discipline`
-8. `active_days_log`
-9. `total_clicks_log`
+5. `assessment_discipline`
 
-Interpretation:
+Use this interpretation:
 
-- academic quality and engagement timing matter together,
-- disengagement recency remains critical,
-- assessment behavior is central in both recommendation and prediction.
+> Academic quality, engagement recency, and submission timing matter together. The model is not driven by one simple proxy such as clicks alone.
 
-### 7.7 Cluster-level model behavior
+## 11. Segment-Level Diagnostics
 
-Use these lines in the discussion:
+Use these lines:
 
-- `Inactive Drop-offs`: actual at-risk rate `93.0%`, recall `0.9989`
-- `Sporadic Explorers`: actual at-risk rate `61.56%`, recall `0.9807`
-- `Steady Progressors`: actual at-risk rate `38.85%`, recall `0.8289`
-- `Focused Achievers`: actual at-risk rate `33.49%`, recall `0.6879`
+- `Inactive Drop-offs`: actual at-risk rate `93.0%`, recall `1.0000`
+- `Sporadic Explorers`: actual at-risk rate `61.6%`, recall `0.9778`
+- `Steady Progressors`: actual at-risk rate `38.9%`, recall `0.8827`
+- `Focused Achievers`: actual at-risk rate `33.5%`, recall `0.7163`
 
 Suggested interpretation:
 
-> The model is strongest in the clearly vulnerable groups and naturally weaker in the more ambiguous high-functioning groups. This is acceptable for an early-warning system whose operational objective is to catch disengagement early rather than to maximize precision on already stable learners.
+> The model is strongest in clearly vulnerable clusters and weaker in the more ambiguous high-functioning group. That is acceptable for an early-warning system designed to catch disengagement aggressively.
 
-## 8. Managerial Implications
+## 12. Managerial Implications
 
-Use this as the final practical section.
+### 12.1 For instructors
 
-### 8.1 For instructors
+- Treat `day 7` as the earliest viable warning checkpoint
+- Treat `day 30` as the strongest ranking checkpoint
+- Prioritize `Inactive Drop-offs` and `Sporadic Explorers` for intervention
+- Use recommendation paths to assign differentiated next actions
 
-- Monitor low-engagement and low-submission learners before the course reaches day 30.
-- Treat `Inactive Drop-offs` and `Sporadic Explorers` as intervention-priority groups.
-- Use recommendation paths to tailor follow-up actions instead of giving the same advice to everyone.
+### 12.2 For program managers
 
-### 8.2 For program managers
+- Compare module-level risk burden before assigning support resources
+- Use the risk bands instead of a single yes/no flag when triaging learners
+- Monitor the `Critical` risk band first because its realized at-risk rate is already above `92%`
 
-- Compare risk across modules, especially `CCC` versus `AAA`.
-- Use at-risk heatmaps and segment dashboards to allocate support resources.
-- Combine model prediction with learner segment to prioritize who needs structured intervention versus who only needs guidance.
+### 12.3 For platform design
 
-### 8.3 For platform design
+- Push engagement prompts very early
+- Surface assessment actions more visibly
+- Reduce delays between weak early behavior and instructor outreach
 
-- Push earlier engagement prompts in the first two weeks.
-- Increase visibility of assessment-related actions.
-- Emphasize high-value activity types associated with successful peers.
+## 13. Limitations
 
-## 9. Limitations
+Use these points:
 
-Use these in the limitations section:
+- The target combines `Fail` and `Withdrawn`, which is useful operationally but broad
+- Recommendations are prototype-based rather than causal
+- Calibration is evaluated on one dataset only
+- External validation would still be needed before production deployment
 
-- The target is based on final outcomes and uses `Fail + Withdrawn` as a broad at-risk definition.
-- Recommendations are rule-based and prototype-based, not causal estimates.
-- The model is built from one dataset and should be externally validated before operational deployment.
-- Some demographic effects may reflect contextual rather than causal relationships.
-
-## 10. Suggested Report Structure
-
-Use this chapter order:
+## 14. Suggested Report Structure
 
 1. Introduction
 2. Research objectives and questions
 3. Dataset and methodology
 4. Data cleaning and integration
 5. Exploratory data analysis
-6. Feature engineering
-7. Learner segmentation and personalized recommendation
-8. At-risk learner modeling
-9. Managerial implications
-10. Limitations and future work
-11. Conclusion
+6. Multi-horizon feature engineering
+7. Segmentation and personalized recommendation
+8. Multi-horizon at-risk modeling
+9. Ablation and calibration analysis
+10. Managerial implications
+11. Limitations and future work
+12. Conclusion
 
-## 11. Defense Q&A Short Answers
+## 15. Defense Q&A
 
-### Why did you not use threshold 0.50?
+### Why not use threshold `0.50`?
 
-Because this is an early-warning problem. Missing an at-risk learner is more costly than reviewing an extra flagged learner, so the threshold was selected on validation data to preserve recall above about 0.90.
+Because the project is an early-warning problem. Missing an at-risk learner is more costly than reviewing an extra flagged learner, so thresholds were selected on validation data to maintain recall above `0.90`.
 
-### Why did you choose Random Forest instead of XGBoost?
+### Why compare multiple horizons instead of only day 30?
 
-Because the final choice was made from validation performance under the project decision rule, not from test-set hindsight. Random Forest delivered the best precision among the high-recall validation operating points.
+Because intervention value depends on time. A day-30 model may be stronger, but a day-7 model is more actionable. The project needed to show both.
 
-### Why include segmentation before prediction?
+### Why is day 7 called the earliest useful horizon?
 
-Because segmentation helps explain heterogeneity in learner behavior and makes recommendations more actionable. It turns model output into intervention logic.
+Because day 7 already reaches validation recall `0.9393` with nontrivial precision and PR-AUC, which makes it usable for early triage even though later horizons are stronger.
 
-### Why use both rule-based and K-Means segmentation?
+### Why choose XGBoost at day 30 as champion?
 
-The rule-based layer gives business interpretability, while K-Means provides a more data-driven multivariate grouping. Using both improves credibility and communication.
+Because after enforcing the recall target, it delivered the strongest validation PR-AUC and F2 among the candidate horizon-model pairs, and the choice was locked before looking at the final test summary.
+
+### What does ablation prove?
+
+It proves that demographics alone are weak, while the combination of engagement and assessment features creates most of the predictive value.
+
+### Why add calibration and risk bands?
+
+Because interventions are prioritized by risk level, not only by hard class labels. Calibration shows whether the probabilities are trustworthy enough to support that prioritization.

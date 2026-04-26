@@ -1,182 +1,234 @@
-# Learning Behavior Analytics and Personalized Learning Path Recommendation for At-Risk Learners
+# Learning Behavior Analytics and Multi-Horizon Early Warning for At-Risk Learners
 
-## Overview
-This project analyzes student learning behavior on online learning platforms and develops a personalized learning path recommendation framework, with a focused study on learners who are at risk of dropping out.
+This project uses the OULAD dataset to build an end-to-end learning analytics pipeline at the `learner + module + presentation` grain. The final deliverable is no longer just a day-30 classifier. It is a **research-focused early-warning system** with multi-horizon feature engineering, segmentation, recommendation, ablation analysis, calibration analysis, and Power BI handoff artifacts.
 
-Using the OULAD (Open University Learning Analytics Dataset), the project combines data preprocessing, exploratory data analysis, feature engineering, learner segmentation, at-risk prediction, recommendation design, and Power BI dashboarding to support data-driven educational decision-making.
+## What Makes This Version Different
 
-## Project Objectives
-The project is structured into two main parts:
+The project now answers four stronger questions:
 
-### Part I. Learning Behavior Analytics and General Personalized Recommendation
-- Analyze learning behavior patterns on an online learning platform
-- Identify learner profiles based on engagement, progress, and performance
-- Build a general personalized learning path recommendation mechanism
-- Visualize insights and recommendations through Power BI dashboards
+1. How early can at-risk learners be identified at `day 7`, `14`, `21`, and `30`?
+2. Which horizon-model pair is strongest once recall-oriented thresholding is enforced?
+3. Which feature groups actually create the predictive lift?
+4. Are the predicted probabilities reliable enough to support risk-banded intervention?
 
-### Part II. Focused Study on At-Risk Learners
-- Identify learners who are at risk of dropping out or failing to complete courses
-- Analyze the behavioral factors associated with learning risk
-- Develop a recommendation mechanism tailored to at-risk learners
-- Propose early intervention insights for instructors and education managers
+## Key Results
 
-## Research Questions
-1. What are the most important learning behavior patterns in online learning environments?
-2. How do engagement, assessment performance, and learning activity affect learner outcomes?
-3. Can learners be segmented into meaningful behavioral profiles?
-4. How can personalized learning paths be recommended for different learner groups?
-5. What early signals indicate that a learner is at risk?
-6. Can machine learning models identify at-risk learners effectively?
-7. How should recommendations for at-risk learners differ from general recommendations?
+- Final analytic sample: `32,593` enrollments and `28,785` unique learners
+- At-risk definition: `Fail` or `Withdrawn`
+- Overall at-risk rate: `52.8%`
+- Earliest useful horizon: `day 7`
+  - best day-7 operating point: `Logistic Regression`
+  - validation recall: `0.9393`
+  - validation precision: `0.5771`
+  - validation PR-AUC: `0.7592`
+- Final champion pair: `XGBoost @ day 30`, threshold `0.25`
+  - test accuracy: `0.6777`
+  - test precision: `0.6313`
+  - test recall: `0.9367`
+  - test F2: `0.8540`
+  - test ROC-AUC: `0.8467`
+  - test PR-AUC: `0.8766`
+- Final risk bands on the held-out test set:
+  - `Low`: actual at-risk rate `15.4%`
+  - `Medium`: `35.3%`
+  - `High`: `62.2%`
+  - `Critical`: `92.5%`
 
-## Dataset
-This project uses the **OULAD (Open University Learning Analytics Dataset)**.
+## Segmentation and Recommendation Highlights
 
-Main tables used:
-- `courses.csv`
-- `studentInfo.csv`
-- `studentRegistration.csv`
-- `assessments.csv`
-- `studentAssessment.csv`
-- `vle.csv`
-- `studentVle.csv`
+Notebook `05` still keeps the project's interpretable learner analytics layer:
 
-## How to Clone This Repository with Full Data
+- `Inactive Drop-offs`
+- `Sporadic Explorers`
+- `Steady Progressors`
+- `Focused Achievers`
 
-This repository uses **Git LFS** for the large file `data/raw/studentVle.csv`.
+Recommendation paths are generated from behavioral gaps relative to successful peers in each cluster. The most common paths are:
 
-To clone the repository with the full dataset, please install Git LFS first.
+- `Consistency Building Path`: `11,133`
+- `Early Start Path`: `7,108`
+- `Assessment Recovery Path`: `5,613`
+- `Mastery Improvement Path`: `5,145`
 
-### Option 1: Fresh clone
+## Research Contributions Added in This Upgrade
+
+### 1. Multi-horizon feature store
+
+Notebook `04` now exports:
+
+- `features_prediction_day07.csv`
+- `features_prediction_day14.csv`
+- `features_prediction_day21.csv`
+- `features_prediction_day30.csv`
+- `features_horizon_metadata.csv`
+
+All four tables:
+
+- have `32,593` rows,
+- have consistent schemas with `40` columns,
+- have `0` missing cells,
+- have `0` duplicate enrollment keys.
+
+### 2. Multi-horizon modeling
+
+Notebook `06` now compares:
+
+- `Logistic Regression`
+- `Random Forest`
+- `XGBoost`
+
+across:
+
+- `day 7`
+- `day 14`
+- `day 21`
+- `day 30`
+
+with a fixed validation rule:
+
+1. keep thresholds with `recall >= 0.90`
+2. maximize `precision`
+3. break ties with `F2`, then `PR-AUC`
+
+### 3. Ablation study
+
+Ablation is run at `day 14` and `day 30` with five feature groups:
+
+- `demographics only`
+- `engagement only`
+- `assessment only`
+- `engagement + assessment`
+- `full feature set`
+
+The strongest pattern is consistent: **full feature sets outperform simpler baselines**, and `engagement + assessment` is clearly stronger than demographics alone.
+
+### 4. Calibration and risk bands
+
+The project now exports:
+
+- `calibration_summary.csv`
+- `risk_band_summary.csv`
+- `risk_band_test_predictions.csv`
+
+This makes the system more useful operationally because intervention prioritization depends on probability quality, not only on binary flags.
+
+## Repository Map
+
+- `notebooks/01_*.ipynb` to `06_*.ipynb`: full analysis pipeline
+- `src/features/multi_horizon_feature_store.py`: reusable horizon feature engineering logic
+- `src/models/multi_horizon_early_warning.py`: reusable multi-horizon modeling logic
+- `data/processed/`: all exported modeling, recommendation, and dashboard tables
+- `reports/final_report_handoff.md`: report-ready storyline and defense notes
+- `reports/demo_talk_track.md`: short demo script
+- `reports/final_presentation_outline.md`: final slide structure
+- `powerbi/dashboard_storyboard.md`: research dashboard page plan
+- `powerbi/dashboard_data_dictionary.md`: dashboard source and field guide
+- `powerbi/dashboard_screenshot_pack/`: research dashboard wireframes
+
+## Main Exported Artifacts
+
+### Feature engineering
+
+- `features_final.csv`
+- `features_segmentation.csv`
+- `features_prediction.csv`
+- `features_recommendation.csv`
+- `features_prediction_day07.csv`
+- `features_prediction_day14.csv`
+- `features_prediction_day21.csv`
+- `features_prediction_day30.csv`
+- `features_horizon_metadata.csv`
+
+### Segmentation and recommendation
+
+- `segment_assignments.csv`
+- `cluster_profiles.csv`
+- `cluster_success_activity_profile.csv`
+- `personalized_learning_paths.csv`
+- `recommendation_dashboard_summary.csv`
+
+### Modeling
+
+- `model_horizon_comparison.csv`
+- `threshold_search_by_horizon.csv`
+- `selected_operating_points.csv`
+- `champion_test_predictions.csv`
+- `champion_test_metrics.csv`
+- `ablation_results.csv`
+- `ablation_gain_summary.csv`
+- `calibration_summary.csv`
+- `risk_band_summary.csv`
+- `risk_band_test_predictions.csv`
+- `model_feature_importance.csv`
+- `error_analysis_samples.csv`
+- `segment_model_performance.csv`
+- `outcome_risk_summary.csv`
+
+## How to Reproduce
+
+### 1. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Pull the full raw dataset
+
+This repository uses Git LFS for `data/raw/studentVle.csv`.
+
+```bash
 git lfs install
-
-git clone https://github.com/haminh109/Learning-Behavior-Analytics-and-Personalized-Learning-Path-Recommendation-for-At-Risk-Learners.git
-
-cd Learning-Behavior-Analytics-and-Personalized-Learning-Path-Recommendation-for-At-Risk-Learners
-
 git lfs pull
+```
 
-### Option 2: If you already cloned the repo
-git lfs install
-git lfs pull
+### 3. Execute notebooks in order
 
-**If Git LFS is not installed, large files such as studentVle.csv may appear only as pointer text files instead of the real dataset.**
+```bash
+jupyter nbconvert --to notebook --execute --inplace notebooks/01_data_understanding.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/02_data_cleaning_integration.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/03_eda.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/04_feature_engineering.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/05_segmentation_recommendation.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/06_at_risk_modeling.ipynb
+```
 
+### 4. Use the hardened CLI targets
 
-## Project Workflow
-1. Problem definition and research design
-2. Data understanding and table mapping
-3. Data cleaning and integration
-4. Exploratory data analysis
-5. Feature engineering
-6. Learner segmentation
-7. At-risk learner prediction
-8. Recommendation design
-9. Power BI dashboard development
-10. Reporting and presentation
+```bash
+make feature-store
+make modeling
+make research
+make validate
+make test
+make test-notebooks
+```
 
-## Methods
-### Data Preparation
-- Missing value handling
-- Duplicate checking
-- Data type standardization
-- Table joining and master dataset creation
+- `make validate` checks the exported research artifacts against the acceptance criteria
+- `make test` runs the unit and acceptance tests
+- `make test-notebooks` runs notebook smoke tests for notebooks `04` and `06`
 
-### Exploratory Analysis
-- Learner distribution by course and presentation
-- Learning engagement over time
-- Assessment performance analysis
-- Comparison across learner outcome groups
+## Power BI Status
 
-### Feature Engineering
-Examples of behavioral features:
-- Total clicks
-- Number of active days
-- Recency of interaction
-- Average assessment score
-- Submission delay
-- Early engagement level
-- Learning persistence
-- Learning risk index
+The repository includes the full research dashboard handoff:
 
-### Learner Segmentation
-- Rule-based segmentation
-- K-Means clustering
+- updated storyboard,
+- data dictionary,
+- page-level wireframes in `powerbi/dashboard_screenshot_pack/`,
+- reporting-ready CSV outputs.
 
-### At-Risk Learner Identification
-Candidate models:
-- Logistic Regression
-- Random Forest
-- XGBoost
+The `.pbix` file itself must be assembled in Power BI Desktop from these exported tables.
 
-Evaluation metrics:
-- Accuracy
-- Precision
-- Recall
-- F1-score
-- ROC-AUC
+## Why This Project Is Special
 
-### Recommendation Design
-The recommendation logic combines:
-- Accessibility
-- Behavioral similarity
-- Engagement fit
-- Completion probability
+Most student projects stop at a single static classifier. This one now gives a full decision-relevant chain:
 
-A general scoring idea:
+`behavior -> segmentation -> recommendation -> multi-horizon early warning -> calibration -> risk bands`
 
-Recommendation Score = w1 × Accessibility Score  
-+ w2 × Similarity Score  
-+ w3 × Engagement Fit Score  
-+ w4 × Completion Probability
+That makes it defensible as both:
 
-## Power BI Dashboard Design
-The dashboard system is expected to include the following pages:
-
-### Part I Dashboards
-1. **Executive Overview**
-2. **Learning Behavior Analytics**
-3. **Personalized Recommendation for General Learners**
-
-### Part II Dashboards
-4. **At-Risk Learner Identification**
-5. **At-Risk Behavior Deep Dive**
-6. **Personalized Path Recommendation for At-Risk Learners**
-
-## Expected Outputs
-- Cleaned and integrated dataset
-- Data dictionary
-- EDA notebook
-- Feature engineering notebook
-- Segmentation and recommendation notebook
-- At-risk prediction notebook
-- Power BI dashboard file
-- Final report
-- Presentation slides
-
-## Tech Stack
-- **Python**: data preprocessing, EDA, feature engineering, machine learning
-- **Power BI**: dashboarding and storytelling
-- **GitHub**: version control and collaboration
-
-Main Python libraries may include:
-- pandas
-- numpy
-- matplotlib
-- seaborn
-- scikit-learn
-- xgboost
-
-## Practical Value
-This project is not only an academic exercise but also a practical decision-support framework for online learning platforms. It helps:
-- understand learner behavior more clearly,
-- detect at-risk learners earlier,
-- recommend better learning paths,
-- support instructors and managers with actionable insights.
-
-## Authors
-Final Project Team – Data Driven Marketing  
-National Economics University
+- an academic analytics project, and
+- a portfolio-ready decision-support case study.
 
 ## License
-This repository is for academic and educational purposes.
+
+This repository is for academic and educational use.

@@ -44,3 +44,6 @@ dist/
 # Optional outputs
 outputs/
 artifacts/
+
+# Local notebook caches
+data/processed/_nb05_student_activity_mix.csv
